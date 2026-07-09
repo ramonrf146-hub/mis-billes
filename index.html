@@ -199,8 +199,8 @@
     background: var(--card);
     border-radius: 9px;
     border: 1px solid var(--line);
-    min-height: 58px;
-    padding: 5px 4px;
+    min-height: 88px;
+    padding: 6px 5px;
     cursor: pointer;
     position: relative;
     display:flex;
@@ -234,14 +234,42 @@
     height: 6px;
     border-radius: 50%;
     background: var(--rust);
+    flex-shrink: 0;
   }
   .dot.paid{ background: var(--sage); }
 
   .day-amt{
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--navy);
     margin-top: 2px;
+  }
+
+  .bill-names{
+    display:flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 3px;
+    overflow: hidden;
+  }
+  .bill-name-tag{
+    font-size: 9.5px;
+    line-height: 1.25;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display:flex;
+    align-items:center;
+    gap: 3px;
+  }
+  .bill-name-tag.paid{ color: var(--muted); text-decoration: line-through; }
+  .bill-name-tag .dot{ margin-top: 0; }
+  .bill-more{
+    font-size: 9px;
+    color: var(--muted-light);
+    font-style: italic;
   }
 
   .footer-note{
@@ -553,23 +581,34 @@ function render(){
     const bills = billsData[key] || [];
     const isToday = viewYear===today.getFullYear() && viewMonth===today.getMonth() && d===today.getDate();
 
-    let dots = '';
     let dayTotal = 0;
     bills.forEach(b => {
       totalCount++;
       const amt = parseFloat(b.amount) || 0;
       dayTotal += amt;
       if(b.paid){ totalPaid += amt; } else { totalDue += amt; }
-      dots += `<span class="dot ${b.paid ? 'paid':''}"></span>`;
     });
 
     const amtLabel = dayTotal > 0 ? `<div class="day-amt">$${dayTotal.toFixed(0)}</div>` : '';
+
+    const maxShow = 3;
+    let namesHtml = '';
+    if(bills.length){
+      namesHtml = '<div class="bill-names">';
+      bills.slice(0, maxShow).forEach(b => {
+        namesHtml += `<div class="bill-name-tag ${b.paid ? 'paid':''}"><span class="dot ${b.paid ? 'paid':''}"></span>${escapeHtml(b.name)}</div>`;
+      });
+      if(bills.length > maxShow){
+        namesHtml += `<div class="bill-more">+${bills.length - maxShow} más</div>`;
+      }
+      namesHtml += '</div>';
+    }
 
     grid.insertAdjacentHTML('beforeend', `
       <div class="day ${isToday ? 'today':''} ${bills.length ? 'has-bills':''}" data-key="${key}" data-day="${d}">
         <div class="num">${d}</div>
         ${amtLabel}
-        <div class="dots">${dots}</div>
+        ${namesHtml}
       </div>
     `);
   }
