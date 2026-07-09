@@ -199,8 +199,8 @@
     background: var(--card);
     border-radius: 9px;
     border: 1px solid var(--line);
-    min-height: 88px;
-    padding: 6px 5px;
+    min-height: 104px;
+    padding: 6px 6px;
     cursor: pointer;
     position: relative;
     display:flex;
@@ -249,21 +249,33 @@
   .bill-names{
     display:flex;
     flex-direction: column;
-    gap: 2px;
-    margin-top: 3px;
+    gap: 3px;
+    margin-top: 4px;
     overflow: hidden;
   }
   .bill-name-tag{
     font-size: 9.5px;
-    line-height: 1.25;
+    line-height: 1.3;
     color: var(--ink);
+    display:flex;
+    align-items:center;
+    gap: 4px;
+  }
+  .bill-name-tag .label{
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display:flex;
-    align-items:center;
-    gap: 3px;
+    flex: 1;
+    min-width: 0;
   }
+  .bill-name-tag .amt{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--rust);
+    flex-shrink: 0;
+  }
+  .bill-name-tag.paid .amt{ color: var(--sage); }
   .bill-name-tag.paid{ color: var(--muted); text-decoration: line-through; }
   .bill-name-tag .dot{ margin-top: 0; }
   .bill-more{
@@ -596,7 +608,9 @@ function render(){
     if(bills.length){
       namesHtml = '<div class="bill-names">';
       bills.slice(0, maxShow).forEach(b => {
-        namesHtml += `<div class="bill-name-tag ${b.paid ? 'paid':''}"><span class="dot ${b.paid ? 'paid':''}"></span>${escapeHtml(b.name)}</div>`;
+        const amt = parseFloat(b.amount) || 0;
+        const amtText = amt > 0 ? `$${amt.toFixed(0)}` : '';
+        namesHtml += `<div class="bill-name-tag ${b.paid ? 'paid':''}"><span class="dot ${b.paid ? 'paid':''}"></span><span class="label">${escapeHtml(b.name)}</span><span class="amt">${amtText}</span></div>`;
       });
       if(bills.length > maxShow){
         namesHtml += `<div class="bill-more">+${bills.length - maxShow} más</div>`;
