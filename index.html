@@ -625,37 +625,18 @@ function sanitizeKey(name){
   return name.trim().toLowerCase().replace(/[^a-z0-9áéíóúñ]+/gi, '-').replace(/^-+|-+$/g, '');
 }
 
-// Combina nombre + PIN en un identificador único difícil de adivinar.
-// No es autenticación real (las reglas de Firestore siguen abiertas), pero
-// evita que alguien vea tus billes solo por saber tu nombre.
-function buildUserKey(name, pin){
+// Viejo esquema (nombre+PIN pegados como ID) usado brevemente — solo se usa
+// aquí para poder recuperar datos que se hayan guardado con ese esquema.
+function legacyCombinedKey(name, pin){
   return sanitizeKey(name) + '--' + pin;
 }
 
-async function loadData(){
-  try{
-    const ref = doc(db, 'billUsers', currentUserKey);
-    const snap = await getDoc(ref);
-    if(snap.exists() && snap.data().data){
-      billsData = JSON.parse(snap.data().data);
-    } else {
-      // Migración: si antes usabas solo tu nombre (sin PIN), recupera esos datos una vez.
-      const legacyKey = sanitizeKey(currentUserDisplay);
-      const legacyRef = doc(db, 'billUsers', legacyKey);
-      const legacySnap = await getDoc(legacyRef);
-      if(legacySnap.exists() && legacySnap.data().data){
-        billsData = JSON.parse(legacySnap.data().data);
-        await saveData();
-      } else {
-        billsData = {};
-      }
-    }
-  }catch(e){
-    console.error('No se pudo cargar', e);
-    billsData = {};
-  }
-  storageReady = true;
-  render();
+// Convierte el PIN en un hash — no queda guardado en texto plano en Firestore.
+async function hashPin(name, pin){
+  const enc = new TextEncoder();
+  const bytes = enc.encode(sanitizeKey(name) + ':' + pin + ':misbilles-v1');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 async function saveData(){
@@ -669,6 +650,68 @@ async function saveData(){
   }catch(e){
     console.error('No se pudo guardar', e);
   }
+}
+
+// Intenta entrar con nombre + PIN. Valida el PIN de verdad contra el que se
+// usó la primera vez (guardado como hash) — si no coincide, rechaza.
+async function loginUser(name, pin){
+  const errorEl = document.getElementById('userError');
+  const btn = document.getElementById('userNameBtn');
+  errorEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+
+  const key = sanitizeKey(name);
+
+  try{
+    const pinHash = await hashPin(name, pin);
+    const ref = doc(db, 'billUsers', key);
+    const snap = await getDoc(ref);
+
+    if(snap.exists()){
+      const docData = snap.data();
+      if(docData.pinHash){
+        if(docData.pinHash !== pinHash){
+          errorEl.textContent = 'Ese PIN no coincide con el que usaste antes para este nombre.';
+          errorEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Entrar';
+          return;
+        }
+        billsData = docData.data ? JSON.parse(docData.data) : {};
+      } else {
+        // Perfil de una versión anterior sin PIN: se adopta este PIN ahora.
+        billsData = docData.data ? JSON.parse(docData.data) : {};
+        await setDoc(ref, { pinHash }, { merge: true });
+      }
+    } else {
+      // Busca datos guardados con el esquema intermedio (nombre+PIN pegados), por si acaso.
+      const legacyRef = doc(db, 'billUsers', legacyCombinedKey(name, pin));
+      const legacySnap = await getDoc(legacyRef);
+      billsData = (legacySnap.exists() && legacySnap.data().data) ? JSON.parse(legacySnap.data().data) : {};
+      await setDoc(ref, {
+        name,
+        pinHash,
+        data: JSON.stringify(billsData),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+
+    currentUserDisplay = name;
+    currentUserKey = key;
+    localStorage.setItem(USERNAME_LS_KEY, name);
+    localStorage.setItem(USERPIN_LS_KEY, pin);
+    document.getElementById('userLabel').textContent = name;
+    document.getElementById('userOverlay').classList.remove('open');
+    storageReady = true;
+    render();
+  }catch(e){
+    console.error('Error de inicio de sesión', e);
+    errorEl.textContent = 'No se pudo conectar. Revisa tu internet e intenta de nuevo.';
+    errorEl.style.display = 'block';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Entrar';
 }
 
 function dayKey(y,m,d){ return `${y}-${m}-${d}`; }
@@ -972,15 +1015,6 @@ document.getElementById('billName').addEventListener('keydown', (e) => {
   if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('billAmt').focus(); }
 });
 
-function startApp(displayName, pin){
-  currentUserDisplay = displayName;
-  currentUserKey = buildUserKey(displayName, pin);
-  document.getElementById('userLabel').textContent = displayName;
-  document.getElementById('userOverlay').classList.remove('open');
-  document.getElementById('userError').style.display = 'none';
-  loadData();
-}
-
 function showUserPrompt(prefillName){
   document.getElementById('userOverlay').classList.add('open');
   document.getElementById('userError').style.display = 'none';
@@ -1001,9 +1035,7 @@ document.getElementById('userNameBtn').addEventListener('click', () => {
   const pin = document.getElementById('userPinInput').value.trim();
   if(!val){ errorEl.textContent = 'Escribe tu nombre.'; errorEl.style.display='block'; return; }
   if(pin.length !== 4){ errorEl.textContent = 'El PIN debe tener 4 dígitos.'; errorEl.style.display='block'; return; }
-  localStorage.setItem(USERNAME_LS_KEY, val);
-  localStorage.setItem(USERPIN_LS_KEY, pin);
-  startApp(val, pin);
+  loginUser(val, pin);
 });
 document.getElementById('userNameInput').addEventListener('keydown', (e) => {
   if(e.key === 'Enter') document.getElementById('userPinInput').focus();
@@ -1056,7 +1088,7 @@ document.getElementById('cloneConfirmBtn').addEventListener('click', async () =>
 const savedName = localStorage.getItem(USERNAME_LS_KEY);
 const savedPin = localStorage.getItem(USERPIN_LS_KEY);
 if(savedName && savedPin){
-  startApp(savedName, savedPin);
+  loginUser(savedName, savedPin);
 } else {
   showUserPrompt();
 }
