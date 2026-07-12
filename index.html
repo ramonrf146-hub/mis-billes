@@ -528,15 +528,18 @@
 <div class="overlay center open" id="userOverlay">
   <div class="sheet" style="border-radius:18px;">
     <h2>Bienvenido</h2>
-    <div class="sub">Escribe tu nombre para guardar tus billes en la nube</div>
+    <div class="sub">Tu nombre + PIN mantienen tus billes privados</div>
     <div class="add-form" style="margin-top:0; border-top:none; padding-top:0;">
       <label for="userNameInput">Tu nombre</label>
       <input type="text" id="userNameInput" placeholder="Ej. Ramon, Tamara...">
+      <label for="userPinInput">PIN de 4 dígitos</label>
+      <input type="password" id="userPinInput" placeholder="••••" inputmode="numeric" maxlength="4" pattern="[0-9]*">
     </div>
+    <div id="userError" class="footer-note" style="margin-top:8px; padding:0; color:var(--rust); display:none;"></div>
     <div class="modal-actions">
       <button class="btn btn-primary" id="userNameBtn" style="flex:1;">Entrar</button>
     </div>
-    <div class="footer-note" style="margin-top:14px; padding:0;">Cada nombre tiene su propio calendario, separado de los demás.</div>
+    <div class="footer-note" style="margin-top:14px; padding:0;">La primera vez que uses un nombre + PIN, se crea tu calendario. Escríbelos igual siempre para volver a entrar — nadie más puede ver tus billes sin ese PIN.</div>
   </div>
 </div>
 
@@ -614,11 +617,19 @@ let billsData = {};
 let storageReady = false;
 
 const USERNAME_LS_KEY = 'bills-app-username';
+const USERPIN_LS_KEY = 'bills-app-pin';
 let currentUserKey = null;
 let currentUserDisplay = null;
 
 function sanitizeKey(name){
   return name.trim().toLowerCase().replace(/[^a-z0-9áéíóúñ]+/gi, '-').replace(/^-+|-+$/g, '');
+}
+
+// Combina nombre + PIN en un identificador único difícil de adivinar.
+// No es autenticación real (las reglas de Firestore siguen abiertas), pero
+// evita que alguien vea tus billes solo por saber tu nombre.
+function buildUserKey(name, pin){
+  return sanitizeKey(name) + '--' + pin;
 }
 
 async function loadData(){
@@ -628,7 +639,16 @@ async function loadData(){
     if(snap.exists() && snap.data().data){
       billsData = JSON.parse(snap.data().data);
     } else {
-      billsData = {};
+      // Migración: si antes usabas solo tu nombre (sin PIN), recupera esos datos una vez.
+      const legacyKey = sanitizeKey(currentUserDisplay);
+      const legacyRef = doc(db, 'billUsers', legacyKey);
+      const legacySnap = await getDoc(legacyRef);
+      if(legacySnap.exists() && legacySnap.data().data){
+        billsData = JSON.parse(legacySnap.data().data);
+        await saveData();
+      } else {
+        billsData = {};
+      }
     }
   }catch(e){
     console.error('No se pudo cargar', e);
@@ -952,28 +972,43 @@ document.getElementById('billName').addEventListener('keydown', (e) => {
   if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('billAmt').focus(); }
 });
 
-function startApp(displayName){
+function startApp(displayName, pin){
   currentUserDisplay = displayName;
-  currentUserKey = sanitizeKey(displayName);
+  currentUserKey = buildUserKey(displayName, pin);
   document.getElementById('userLabel').textContent = displayName;
   document.getElementById('userOverlay').classList.remove('open');
+  document.getElementById('userError').style.display = 'none';
   loadData();
 }
 
-function showUserPrompt(prefill){
+function showUserPrompt(prefillName){
   document.getElementById('userOverlay').classList.add('open');
+  document.getElementById('userError').style.display = 'none';
   const input = document.getElementById('userNameInput');
-  input.value = prefill || '';
-  setTimeout(() => input.focus(), 50);
+  const pinInput = document.getElementById('userPinInput');
+  input.value = prefillName || '';
+  pinInput.value = '';
+  setTimeout(() => (prefillName ? pinInput : input).focus(), 50);
 }
 
+document.getElementById('userPinInput').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+});
+
 document.getElementById('userNameBtn').addEventListener('click', () => {
+  const errorEl = document.getElementById('userError');
   const val = document.getElementById('userNameInput').value.trim();
-  if(!val) return;
+  const pin = document.getElementById('userPinInput').value.trim();
+  if(!val){ errorEl.textContent = 'Escribe tu nombre.'; errorEl.style.display='block'; return; }
+  if(pin.length !== 4){ errorEl.textContent = 'El PIN debe tener 4 dígitos.'; errorEl.style.display='block'; return; }
   localStorage.setItem(USERNAME_LS_KEY, val);
-  startApp(val);
+  localStorage.setItem(USERPIN_LS_KEY, pin);
+  startApp(val, pin);
 });
 document.getElementById('userNameInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('userPinInput').focus();
+});
+document.getElementById('userPinInput').addEventListener('keydown', (e) => {
   if(e.key === 'Enter') document.getElementById('userNameBtn').click();
 });
 document.getElementById('switchUserLink').addEventListener('click', (e) => {
@@ -1019,8 +1054,9 @@ document.getElementById('cloneConfirmBtn').addEventListener('click', async () =>
 });
 
 const savedName = localStorage.getItem(USERNAME_LS_KEY);
-if(savedName){
-  startApp(savedName);
+const savedPin = localStorage.getItem(USERPIN_LS_KEY);
+if(savedName && savedPin){
+  startApp(savedName, savedPin);
 } else {
   showUserPrompt();
 }
