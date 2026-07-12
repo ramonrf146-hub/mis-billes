@@ -120,6 +120,29 @@
     text-decoration: none;
     font-weight: 600;
   }
+  .lang-toggle{
+    display:inline-flex;
+    margin-left: 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    vertical-align: middle;
+  }
+  .lang-btn{
+    font-family: 'Inter', sans-serif;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border: none;
+    background: var(--card);
+    color: var(--muted);
+    padding: 2px 6px;
+    cursor: pointer;
+  }
+  .lang-btn.active{
+    background: var(--navy);
+    color: var(--cream);
+  }
 
   .nav{
     display:flex;
@@ -489,7 +512,14 @@
     <header>
       <div class="brand-row">
         <div class="brand">Mis Billes</div>
-        <div class="user-tag"><span id="userLabel">—</span><br><a href="#" id="switchUserLink">cambiar</a></div>
+        <div class="user-tag">
+          <span id="userLabel">—</span>
+          <span class="lang-toggle">
+            <button id="langEsBtn" class="lang-btn active">ES</button>
+            <button id="langEnBtn" class="lang-btn">EN</button>
+          </span>
+          <br><a href="#" id="switchUserLink" data-i18n="changeUser">cambiar</a>
+        </div>
       </div>
       <div class="nav">
         <button id="prevBtn" aria-label="Mes anterior">‹</button>
@@ -497,22 +527,22 @@
         <button id="nextBtn" aria-label="Mes siguiente">›</button>
       </div>
       <div class="clone-row">
-        <a href="#" id="cloneLink">🔁📅 Clonar billes fijos hacia adelante</a>
+        <a href="#" id="cloneLink" data-i18n="cloneLink">🔁📅 Clonar billes fijos hacia adelante</a>
       </div>
     </header>
 
     <div class="summary">
       <div class="stat">
         <div class="num" id="totalCount">0</div>
-        <div class="label">Billes</div>
+        <div class="label" data-i18n="statBills">Billes</div>
       </div>
       <div class="stat due">
         <div class="num" id="totalDue">$0</div>
-        <div class="label">Por pagar</div>
+        <div class="label" data-i18n="statDue">Por pagar</div>
       </div>
       <div class="stat paid">
         <div class="num" id="totalPaid">$0</div>
-        <div class="label">Pagado</div>
+        <div class="label" data-i18n="statPaid">Pagado</div>
       </div>
     </div>
 
@@ -522,24 +552,24 @@
     </div>
   </div>
 
-  <div class="footer-note">Toca un día para agregar o revisar tus billes. Se guardan en la nube bajo tu nombre.</div>
+  <div class="footer-note" data-i18n="footerMain">Toca un día para agregar o revisar tus billes. Se guardan en la nube bajo tu nombre.</div>
 </div>
 
 <div class="overlay center open" id="userOverlay">
   <div class="sheet" style="border-radius:18px;">
-    <h2>Bienvenido</h2>
-    <div class="sub">Tu nombre + PIN mantienen tus billes privados</div>
+    <h2 data-i18n="welcomeTitle">Bienvenido</h2>
+    <div class="sub" data-i18n="welcomeSub">Tu nombre + PIN mantienen tus billes privados</div>
     <div class="add-form" style="margin-top:0; border-top:none; padding-top:0;">
-      <label for="userNameInput">Tu nombre</label>
-      <input type="text" id="userNameInput" placeholder="Ej. Ramon, Tamara...">
-      <label for="userPinInput">PIN de 4 dígitos</label>
+      <label for="userNameInput" data-i18n="yourName">Tu nombre</label>
+      <input type="text" id="userNameInput" data-i18n-placeholder="namePlaceholder" placeholder="Ej. Ramon, Tamara...">
+      <label for="userPinInput" data-i18n="pinLabel">PIN de 4 dígitos</label>
       <input type="password" id="userPinInput" placeholder="••••" inputmode="numeric" maxlength="4" pattern="[0-9]*">
     </div>
     <div id="userError" class="footer-note" style="margin-top:8px; padding:0; color:var(--rust); display:none;"></div>
     <div class="modal-actions">
-      <button class="btn btn-primary" id="userNameBtn" style="flex:1;">Entrar</button>
+      <button class="btn btn-primary" id="userNameBtn" data-i18n="enterBtn" style="flex:1;">Entrar</button>
     </div>
-    <div class="footer-note" style="margin-top:14px; padding:0;">La primera vez que uses un nombre + PIN, se crea tu calendario. Escríbelos igual siempre para volver a entrar — nadie más puede ver tus billes sin ese PIN.</div>
+    <div class="footer-note" data-i18n="welcomeFooter" style="margin-top:14px; padding:0;">La primera vez que uses un nombre + PIN, se crea tu calendario. Escríbelos igual siempre para volver a entrar — nadie más puede ver tus billes sin ese PIN.</div>
   </div>
 </div>
 
@@ -552,39 +582,39 @@
     <div id="billList"></div>
 
     <div class="add-form">
-      <label for="billName">Nombre del bille <a href="#" id="cancelEditLink" style="display:none; float:right; color:var(--rust); font-weight:600; text-transform:none; letter-spacing:0;">cancelar edición</a></label>
-      <input type="text" id="billName" placeholder="Ej. Luz, Internet, Renta...">
-      <label for="billAmt">Monto (opcional)</label>
-      <input type="text" id="billAmt" placeholder="Ej. 85.50" inputmode="decimal">
-      <label for="billFrequency">¿Se repite?</label>
+      <label for="billName"><span data-i18n="billNameLabel">Nombre del bille</span> <a href="#" id="cancelEditLink" data-i18n="cancelEdit" style="display:none; float:right; color:var(--rust); font-weight:600; text-transform:none; letter-spacing:0;">cancelar edición</a></label>
+      <input type="text" id="billName" data-i18n-placeholder="billNamePlaceholder" placeholder="Ej. Luz, Internet, Renta...">
+      <label for="billAmt" data-i18n="amountLabel">Monto (opcional)</label>
+      <input type="text" id="billAmt" data-i18n-placeholder="amountPlaceholder" placeholder="Ej. 85.50" inputmode="decimal">
+      <label for="billFrequency" data-i18n="repeatLabel">¿Se repite?</label>
       <select id="billFrequency">
-        <option value="">No se repite</option>
-        <option value="monthly">🔁 Fijo cada mes (ej. renta, carro, seguro)</option>
-        <option value="weekly">📅 Fijo cada semana</option>
+        <option value="" data-i18n="noRepeat">No se repite</option>
+        <option value="monthly" data-i18n="monthlyOption">🔁 Fijo cada mes (ej. renta, carro, seguro)</option>
+        <option value="weekly" data-i18n="weeklyOption">📅 Fijo cada semana</option>
       </select>
     </div>
 
     <div class="modal-actions">
-      <button class="btn btn-ghost" id="closeBtn">Cerrar</button>
-      <button class="btn btn-primary" id="addBtn">Agregar bille</button>
+      <button class="btn btn-ghost" id="closeBtn" data-i18n="closeBtn">Cerrar</button>
+      <button class="btn btn-primary" id="addBtn" data-i18n="addBillBtn">Agregar bille</button>
     </div>
   </div>
 </div>
 
 <div class="overlay center" id="cloneOverlay">
   <div class="sheet" style="border-radius:18px;">
-    <h2>Clonar billes fijos</h2>
-    <div class="sub">Copia tus billes 🔁 mensuales y 📅 semanales hacia adelante</div>
+    <h2 data-i18n="cloneTitle">Clonar billes fijos</h2>
+    <div class="sub" data-i18n="cloneSub">Copia tus billes 🔁 mensuales y 📅 semanales hacia adelante</div>
     <div class="add-form" style="margin-top:0; border-top:none; padding-top:0;">
-      <label for="cloneMonths">🔁 Billes mensuales: ¿a cuántos meses adelante?</label>
+      <label for="cloneMonths" data-i18n="cloneMonthsLabel">🔁 Billes mensuales: ¿a cuántos meses adelante?</label>
       <input type="number" id="cloneMonths" value="1" min="0" max="24" inputmode="numeric">
-      <label for="cloneWeeks">📅 Billes semanales: ¿a cuántas semanas adelante?</label>
+      <label for="cloneWeeks" data-i18n="cloneWeeksLabel">📅 Billes semanales: ¿a cuántas semanas adelante?</label>
       <input type="number" id="cloneWeeks" value="4" min="0" max="52" inputmode="numeric">
     </div>
     <div id="cloneSummary" class="footer-note" style="margin-top:12px; padding:0;"></div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" id="cloneCancelBtn">Cancelar</button>
-      <button class="btn btn-primary" id="cloneConfirmBtn">Clonar ahora</button>
+      <button class="btn btn-ghost" id="cloneCancelBtn" data-i18n="cancelBtn">Cancelar</button>
+      <button class="btn btn-primary" id="cloneConfirmBtn" data-i18n="cloneNowBtn">Clonar ahora</button>
     </div>
   </div>
 </div>
@@ -605,8 +635,140 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 
-const monthNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const dowNames = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const MONTH_NAMES = {
+  es: ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+  en: ["January","February","March","April","May","June","July","August","September","October","November","December"]
+};
+const DOW_NAMES = {
+  es: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+  en: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
+};
+
+const I18N = {
+  es: {
+    cloneLink: "🔁📅 Clonar billes fijos hacia adelante",
+    footerMain: "Toca un día para agregar o revisar tus billes. Se guardan en la nube bajo tu nombre.",
+    welcomeTitle: "Bienvenido",
+    welcomeSub: "Tu nombre + PIN mantienen tus billes privados",
+    yourName: "Tu nombre",
+    namePlaceholder: "Ej. Ramon, Tamara...",
+    pinLabel: "PIN de 4 dígitos",
+    enterBtn: "Entrar",
+    verifyingBtn: "Verificando...",
+    welcomeFooter: "La primera vez que uses un nombre + PIN, se crea tu calendario. Escríbelos igual siempre para volver a entrar — nadie más puede ver tus billes sin ese PIN.",
+    billNameLabel: "Nombre del bille",
+    cancelEdit: "cancelar edición",
+    billNamePlaceholder: "Ej. Luz, Internet, Renta...",
+    amountLabel: "Monto (opcional)",
+    amountPlaceholder: "Ej. 85.50",
+    repeatLabel: "¿Se repite?",
+    noRepeat: "No se repite",
+    monthlyOption: "🔁 Fijo cada mes (ej. renta, carro, seguro)",
+    weeklyOption: "📅 Fijo cada semana",
+    closeBtn: "Cerrar",
+    addBillBtn: "Agregar bille",
+    saveChangesBtn: "Guardar cambios",
+    cloneTitle: "Clonar billes fijos",
+    cloneSub: "Copia tus billes 🔁 mensuales y 📅 semanales hacia adelante",
+    cloneMonthsLabel: "🔁 Billes mensuales: ¿a cuántos meses adelante?",
+    cloneWeeksLabel: "📅 Billes semanales: ¿a cuántas semanas adelante?",
+    cancelBtn: "Cancelar",
+    cloneNowBtn: "Clonar ahora",
+    cloningBtn: "Clonando...",
+    statBills: "Billes",
+    statDue: "Por pagar",
+    statPaid: "Pagado",
+    emptyDay: "No hay billes en este día todavía.",
+    errNoName: "Escribe tu nombre.",
+    errPinLength: "El PIN debe tener 4 dígitos.",
+    errPinMismatch: "Ese PIN no coincide con el que usaste antes para este nombre.",
+    errConnection: "No se pudo conectar. Revisa tu internet e intenta de nuevo.",
+    cloneEmptyMsg: 'Aún no has marcado ningún bille como fijo. Edítalo y elige "🔁 mensual" o "📅 semanal".',
+    cloneCountMsg: (m, w) => `Tienes ${m} bille(s) 🔁 mensuales y ${w} bille(s) 📅 semanales en total.`,
+    cloneDoneMsg: (n) => `Listo: se clonaron ${n} bille(s) en total.`,
+    cloneNothingMsg: "No había billes fijos nuevos para clonar (puede que ya estuvieran copiados).",
+    dayOf: (day, monthName) => `${day} de ${monthName}`,
+    changeUser: "cambiar"
+  },
+  en: {
+    cloneLink: "🔁📅 Clone fixed bills forward",
+    footerMain: "Tap a day to add or review your bills. Saved to the cloud under your name.",
+    welcomeTitle: "Welcome",
+    welcomeSub: "Your name + PIN keep your bills private",
+    yourName: "Your name",
+    namePlaceholder: "E.g. Ramon, Tamara...",
+    pinLabel: "4-digit PIN",
+    enterBtn: "Enter",
+    verifyingBtn: "Checking...",
+    welcomeFooter: "The first time you use a name + PIN, your calendar is created. Type them the same way every time — no one else can see your bills without that PIN.",
+    billNameLabel: "Bill name",
+    cancelEdit: "cancel edit",
+    billNamePlaceholder: "E.g. Electricity, Internet, Rent...",
+    amountLabel: "Amount (optional)",
+    amountPlaceholder: "E.g. 85.50",
+    repeatLabel: "Does it repeat?",
+    noRepeat: "Doesn't repeat",
+    monthlyOption: "🔁 Fixed every month (e.g. rent, car, insurance)",
+    weeklyOption: "📅 Fixed every week",
+    closeBtn: "Close",
+    addBillBtn: "Add bill",
+    saveChangesBtn: "Save changes",
+    cloneTitle: "Clone fixed bills",
+    cloneSub: "Copy your 🔁 monthly and 📅 weekly bills forward",
+    cloneMonthsLabel: "🔁 Monthly bills: how many months ahead?",
+    cloneWeeksLabel: "📅 Weekly bills: how many weeks ahead?",
+    cancelBtn: "Cancel",
+    cloneNowBtn: "Clone now",
+    cloningBtn: "Cloning...",
+    statBills: "Bills",
+    statDue: "Due",
+    statPaid: "Paid",
+    emptyDay: "No bills on this day yet.",
+    errNoName: "Type your name.",
+    errPinLength: "PIN must be 4 digits.",
+    errPinMismatch: "That PIN doesn't match the one you used before for this name.",
+    errConnection: "Couldn't connect. Check your internet and try again.",
+    cloneEmptyMsg: 'No bills marked as fixed yet. Edit one and choose "🔁 monthly" or "📅 weekly".',
+    cloneCountMsg: (m, w) => `You have ${m} 🔁 monthly bill(s) and ${w} 📅 weekly bill(s) in total.`,
+    cloneDoneMsg: (n) => `Done: cloned ${n} bill(s) in total.`,
+    cloneNothingMsg: "No new fixed bills to clone (they may already be copied).",
+    dayOf: (day, monthName) => `${monthName} ${day}`,
+    changeUser: "change"
+  }
+};
+
+let LANG = 'es';
+function t(key, ...args){
+  const entry = I18N[LANG][key];
+  return typeof entry === 'function' ? entry(...args) : entry;
+}
+
+function applyTranslations(){
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+  });
+  document.getElementById('langEsBtn').classList.toggle('active', LANG === 'es');
+  document.getElementById('langEnBtn').classList.toggle('active', LANG === 'en');
+  document.getElementById('addBtn').textContent = editingId ? t('saveChangesBtn') : t('addBillBtn');
+  document.documentElement.lang = LANG;
+}
+
+async function setLanguage(lang){
+  if(lang !== 'es' && lang !== 'en') return;
+  LANG = lang;
+  localStorage.setItem(LANG_LS_KEY, lang);
+  applyTranslations();
+  render();
+  if(document.getElementById('overlay').classList.contains('open')) renderBillList();
+  if(currentUserKey){
+    try{
+      await setDoc(doc(db, 'billUsers', currentUserKey), { lang }, { merge: true });
+    }catch(e){ console.error('No se pudo guardar el idioma', e); }
+  }
+}
 
 const today = new Date();
 let viewYear = today.getFullYear();
@@ -618,6 +780,7 @@ let storageReady = false;
 
 const USERNAME_LS_KEY = 'bills-app-username';
 const USERPIN_LS_KEY = 'bills-app-pin';
+const LANG_LS_KEY = 'bills-app-lang';
 let currentUserKey = null;
 let currentUserDisplay = null;
 
@@ -659,7 +822,7 @@ async function loginUser(name, pin){
   const btn = document.getElementById('userNameBtn');
   errorEl.style.display = 'none';
   btn.disabled = true;
-  btn.textContent = 'Verificando...';
+  btn.textContent = t('verifyingBtn');
 
   const key = sanitizeKey(name);
 
@@ -667,15 +830,16 @@ async function loginUser(name, pin){
     const pinHash = await hashPin(name, pin);
     const ref = doc(db, 'billUsers', key);
     const snap = await getDoc(ref);
+    let profileLang = null;
 
     if(snap.exists()){
       const docData = snap.data();
       if(docData.pinHash){
         if(docData.pinHash !== pinHash){
-          errorEl.textContent = 'Ese PIN no coincide con el que usaste antes para este nombre.';
+          errorEl.textContent = t('errPinMismatch');
           errorEl.style.display = 'block';
           btn.disabled = false;
-          btn.textContent = 'Entrar';
+          btn.textContent = t('enterBtn');
           return;
         }
         billsData = docData.data ? JSON.parse(docData.data) : {};
@@ -684,6 +848,7 @@ async function loginUser(name, pin){
         billsData = docData.data ? JSON.parse(docData.data) : {};
         await setDoc(ref, { pinHash }, { merge: true });
       }
+      profileLang = docData.lang || null;
     } else {
       // Busca datos guardados con el esquema intermedio (nombre+PIN pegados), por si acaso.
       const legacyRef = doc(db, 'billUsers', legacyCombinedKey(name, pin));
@@ -692,35 +857,42 @@ async function loginUser(name, pin){
       await setDoc(ref, {
         name,
         pinHash,
+        lang: LANG,
         data: JSON.stringify(billsData),
         updatedAt: serverTimestamp()
       }, { merge: true });
+      profileLang = LANG;
     }
 
     currentUserDisplay = name;
     currentUserKey = key;
     localStorage.setItem(USERNAME_LS_KEY, name);
     localStorage.setItem(USERPIN_LS_KEY, pin);
+    if(profileLang && profileLang !== LANG){
+      LANG = profileLang;
+      localStorage.setItem(LANG_LS_KEY, LANG);
+    }
     document.getElementById('userLabel').textContent = name;
     document.getElementById('userOverlay').classList.remove('open');
     storageReady = true;
+    applyTranslations();
     render();
   }catch(e){
     console.error('Error de inicio de sesión', e);
-    errorEl.textContent = 'No se pudo conectar. Revisa tu internet e intenta de nuevo.';
+    errorEl.textContent = t('errConnection');
     errorEl.style.display = 'block';
   }
   btn.disabled = false;
-  btn.textContent = 'Entrar';
+  btn.textContent = t('enterBtn');
 }
 
 function dayKey(y,m,d){ return `${y}-${m}-${d}`; }
 
 function render(){
-  document.getElementById('monthLabel').textContent = `${monthNames[viewMonth]} ${viewYear}`;
+  document.getElementById('monthLabel').textContent = `${MONTH_NAMES[LANG][viewMonth]} ${viewYear}`;
 
   const dowRow = document.getElementById('dowRow');
-  dowRow.innerHTML = dowNames.map(d => `<div class="dow">${d}</div>`).join('');
+  dowRow.innerHTML = DOW_NAMES[LANG].map(d => `<div class="dow">${d}</div>`).join('');
 
   const grid = document.getElementById('calGrid');
   grid.innerHTML = '';
@@ -790,7 +962,7 @@ function escapeHtml(str){
 
 function openModal(key, day){
   selectedKey = key;
-  document.getElementById('modalDate').textContent = `${day} de ${monthNames[viewMonth]}`;
+  document.getElementById('modalDate').textContent = t('dayOf', day, MONTH_NAMES[LANG][viewMonth]);
   document.getElementById('modalYear').textContent = viewYear;
   cancelEditBill();
   renderBillList();
@@ -818,7 +990,7 @@ function renderBillList(){
   const bills = billsData[selectedKey] || [];
   const listEl = document.getElementById('billList');
   if(bills.length === 0){
-    listEl.innerHTML = `<div class="empty-msg">No hay billes en este día todavía.</div>`;
+    listEl.innerHTML = `<div class="empty-msg">${t('emptyDay')}</div>`;
     return;
   }
   listEl.innerHTML = bills.map(b => `
@@ -862,7 +1034,7 @@ function startEditBill(bill){
   document.getElementById('billName').value = bill.name;
   document.getElementById('billAmt').value = bill.amount || '';
   document.getElementById('billFrequency').value = getFrequency(bill);
-  document.getElementById('addBtn').textContent = 'Guardar cambios';
+  document.getElementById('addBtn').textContent = t('saveChangesBtn');
   document.getElementById('cancelEditLink').style.display = 'inline';
   document.getElementById('billName').focus();
   document.getElementById('billName').scrollIntoView({ behavior:'smooth', block:'center' });
@@ -873,7 +1045,7 @@ function cancelEditBill(){
   document.getElementById('billName').value = '';
   document.getElementById('billAmt').value = '';
   document.getElementById('billFrequency').value = '';
-  document.getElementById('addBtn').textContent = 'Agregar bille';
+  document.getElementById('addBtn').textContent = t('addBillBtn');
   document.getElementById('cancelEditLink').style.display = 'none';
 }
 
@@ -1033,8 +1205,8 @@ document.getElementById('userNameBtn').addEventListener('click', () => {
   const errorEl = document.getElementById('userError');
   const val = document.getElementById('userNameInput').value.trim();
   const pin = document.getElementById('userPinInput').value.trim();
-  if(!val){ errorEl.textContent = 'Escribe tu nombre.'; errorEl.style.display='block'; return; }
-  if(pin.length !== 4){ errorEl.textContent = 'El PIN debe tener 4 dígitos.'; errorEl.style.display='block'; return; }
+  if(!val){ errorEl.textContent = t('errNoName'); errorEl.style.display='block'; return; }
+  if(pin.length !== 4){ errorEl.textContent = t('errPinLength'); errorEl.style.display='block'; return; }
   loginUser(val, pin);
 });
 document.getElementById('userNameInput').addEventListener('keydown', (e) => {
@@ -1054,8 +1226,8 @@ document.getElementById('cloneLink').addEventListener('click', (e) => {
   const monthlyCount = allBills.filter(b => getFrequency(b) === 'monthly').length;
   const weeklyCount = allBills.filter(b => getFrequency(b) === 'weekly').length;
   document.getElementById('cloneSummary').textContent = (monthlyCount + weeklyCount) > 0
-    ? `Tienes ${monthlyCount} bille(s) 🔁 mensuales y ${weeklyCount} bille(s) 📅 semanales en total.`
-    : `Aún no has marcado ningún bille como fijo. Edítalo y elige "🔁 mensual" o "📅 semanal".`;
+    ? t('cloneCountMsg', monthlyCount, weeklyCount)
+    : t('cloneEmptyMsg');
   document.getElementById('cloneMonths').value = 1;
   document.getElementById('cloneWeeks').value = 4;
   document.getElementById('cloneOverlay').classList.add('open');
@@ -1070,20 +1242,27 @@ document.getElementById('cloneConfirmBtn').addEventListener('click', async () =>
   const months = Math.max(0, Math.min(24, parseInt(document.getElementById('cloneMonths').value) || 0));
   const weeks = Math.max(0, Math.min(52, parseInt(document.getElementById('cloneWeeks').value) || 0));
   const btn = document.getElementById('cloneConfirmBtn');
-  btn.textContent = 'Clonando...';
+  btn.textContent = t('cloningBtn');
   btn.disabled = true;
   let count = 0;
   if(months > 0) count += cloneMonthlyBills(months);
   if(weeks > 0) count += cloneWeeklyBills(weeks);
   await saveData();
   render();
-  btn.textContent = 'Clonar ahora';
+  btn.textContent = t('cloneNowBtn');
   btn.disabled = false;
   document.getElementById('cloneOverlay').classList.remove('open');
   document.getElementById('cloneSummary').textContent = count > 0
-    ? `Listo: se clonaron ${count} bille(s) en total.`
-    : `No había billes fijos nuevos para clonar (puede que ya estuvieran copiados).`;
+    ? t('cloneDoneMsg', count)
+    : t('cloneNothingMsg');
 });
+
+document.getElementById('langEsBtn').addEventListener('click', () => setLanguage('es'));
+document.getElementById('langEnBtn').addEventListener('click', () => setLanguage('en'));
+
+const savedLang = localStorage.getItem(LANG_LS_KEY);
+if(savedLang === 'es' || savedLang === 'en'){ LANG = savedLang; }
+applyTranslations();
 
 const savedName = localStorage.getItem(USERNAME_LS_KEY);
 const savedPin = localStorage.getItem(USERPIN_LS_KEY);
