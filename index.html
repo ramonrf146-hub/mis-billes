@@ -381,6 +381,11 @@
   .bill-row .name{ font-weight:600; font-size:14px; color: var(--navy); }
   .bill-row .name.paid{ color: var(--muted); text-decoration: line-through; }
   .bill-row .amt{ font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--muted); margin-top:1px; }
+  .bill-row .edit{
+    background:none; border:none; color:var(--navy);
+    font-size: 15px; cursor:pointer; padding:2px 6px; opacity:0.6;
+  }
+  .bill-row .edit:hover{ opacity:1; }
   .bill-row .del{
     background:none; border:none; color:var(--rust);
     font-size: 18px; cursor:pointer; padding:2px 6px; opacity:0.6;
@@ -509,7 +514,7 @@
     <div id="billList"></div>
 
     <div class="add-form">
-      <label for="billName">Nombre del bille</label>
+      <label for="billName">Nombre del bille <a href="#" id="cancelEditLink" style="display:none; float:right; color:var(--rust); font-weight:600; text-transform:none; letter-spacing:0;">cancelar edición</a></label>
       <input type="text" id="billName" placeholder="Ej. Luz, Internet, Renta...">
       <label for="billAmt">Monto (opcional)</label>
       <input type="text" id="billAmt" placeholder="Ej. 85.50" inputmode="decimal">
@@ -665,15 +670,15 @@ function openModal(key, day){
   selectedKey = key;
   document.getElementById('modalDate').textContent = `${day} de ${monthNames[viewMonth]}`;
   document.getElementById('modalYear').textContent = viewYear;
+  cancelEditBill();
   renderBillList();
-  document.getElementById('billName').value = '';
-  document.getElementById('billAmt').value = '';
   document.getElementById('overlay').classList.add('open');
   setTimeout(() => document.getElementById('billName').focus(), 50);
 }
 
 function closeModal(){
   document.getElementById('overlay').classList.remove('open');
+  cancelEditBill();
   selectedKey = null;
 }
 
@@ -691,6 +696,7 @@ function renderBillList(){
         <div class="name ${b.paid ? 'paid':''}">${escapeHtml(b.name)}</div>
         ${b.amount ? `<div class="amt">$${parseFloat(b.amount).toFixed(2)}</div>` : ''}
       </div>
+      <button class="edit" data-id="${b.id}">✎</button>
       <button class="del" data-id="${b.id}">✕</button>
     </div>
   `).join('');
@@ -701,13 +707,40 @@ function renderBillList(){
       if(bill){ bill.paid = !bill.paid; saveData(); renderBillList(); render(); }
     });
   });
+  listEl.querySelectorAll('.edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const bill = (billsData[selectedKey]||[]).find(b => b.id === btn.dataset.id);
+      if(bill) startEditBill(bill);
+    });
+  });
   listEl.querySelectorAll('.del').forEach(btn => {
     btn.addEventListener('click', () => {
       billsData[selectedKey] = (billsData[selectedKey]||[]).filter(b => b.id !== btn.dataset.id);
       if(billsData[selectedKey].length === 0) delete billsData[selectedKey];
+      if(editingId === btn.dataset.id) cancelEditBill();
       saveData(); renderBillList(); render();
     });
   });
+}
+
+let editingId = null;
+
+function startEditBill(bill){
+  editingId = bill.id;
+  document.getElementById('billName').value = bill.name;
+  document.getElementById('billAmt').value = bill.amount || '';
+  document.getElementById('addBtn').textContent = 'Guardar cambios';
+  document.getElementById('cancelEditLink').style.display = 'inline';
+  document.getElementById('billName').focus();
+  document.getElementById('billName').scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+function cancelEditBill(){
+  editingId = null;
+  document.getElementById('billName').value = '';
+  document.getElementById('billAmt').value = '';
+  document.getElementById('addBtn').textContent = 'Agregar bille';
+  document.getElementById('cancelEditLink').style.display = 'none';
 }
 
 function addBill(){
@@ -717,17 +750,26 @@ function addBill(){
   if(!name) { nameInput.focus(); return; }
   const amount = amtInput.value.trim();
 
-  if(!billsData[selectedKey]) billsData[selectedKey] = [];
-  billsData[selectedKey].push({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    name,
-    amount: amount || '',
-    paid: false
-  });
+  if(editingId){
+    const bill = (billsData[selectedKey]||[]).find(b => b.id === editingId);
+    if(bill){
+      bill.name = name;
+      bill.amount = amount || '';
+    }
+    cancelEditBill();
+  } else {
+    if(!billsData[selectedKey]) billsData[selectedKey] = [];
+    billsData[selectedKey].push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      name,
+      amount: amount || '',
+      paid: false
+    });
+    nameInput.value = '';
+    amtInput.value = '';
+    nameInput.focus();
+  }
   saveData();
-  nameInput.value = '';
-  amtInput.value = '';
-  nameInput.focus();
   renderBillList();
   render();
 }
@@ -745,6 +787,10 @@ document.getElementById('overlay').addEventListener('click', (e) => {
   if(e.target.id === 'overlay') closeModal();
 });
 document.getElementById('addBtn').addEventListener('click', addBill);
+document.getElementById('cancelEditLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  cancelEditBill();
+});
 document.getElementById('billAmt').addEventListener('keydown', (e) => {
   if(e.key === 'Enter') addBill();
 });
