@@ -154,6 +154,18 @@
     text-align:center;
   }
 
+  .clone-row{
+    text-align:center;
+    margin-top: 10px;
+  }
+  .clone-row a{
+    font-size: 11px;
+    color: var(--brass-dark);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .clone-row a:hover{ text-decoration: underline; }
+
   .summary{
     display:flex;
     padding: 16px 22px;
@@ -413,6 +425,26 @@
     color: var(--ink);
   }
   .add-form input:focus{ outline:none; border-color: var(--brass); }
+  .recurring-label{
+    display:flex !important;
+    align-items:center;
+    gap: 8px;
+    font-size: 12.5px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    color: var(--ink) !important;
+    margin-top: 14px !important;
+    cursor: pointer;
+  }
+  .recurring-label input[type="checkbox"]{
+    width: 17px; height: 17px;
+    accent-color: var(--brass-dark);
+    flex-shrink: 0;
+  }
+  .recur-badge{
+    font-size: 9px;
+    margin-left: 2px;
+  }
 
   .modal-actions{ display:flex; gap: 8px; margin-top: 18px; }
   .btn{
@@ -463,6 +495,9 @@
         <button id="prevBtn" aria-label="Mes anterior">‹</button>
         <div class="month-label" id="monthLabel"></div>
         <button id="nextBtn" aria-label="Mes siguiente">›</button>
+      </div>
+      <div class="clone-row">
+        <a href="#" id="cloneLink">🔁 Clonar billes fijos a otros meses</a>
       </div>
     </header>
 
@@ -518,11 +553,31 @@
       <input type="text" id="billName" placeholder="Ej. Luz, Internet, Renta...">
       <label for="billAmt">Monto (opcional)</label>
       <input type="text" id="billAmt" placeholder="Ej. 85.50" inputmode="decimal">
+      <label class="recurring-label">
+        <input type="checkbox" id="billRecurring">
+        <span>🔁 Es un bille fijo (se repite todos los meses)</span>
+      </label>
     </div>
 
     <div class="modal-actions">
       <button class="btn btn-ghost" id="closeBtn">Cerrar</button>
       <button class="btn btn-primary" id="addBtn">Agregar bille</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay center" id="cloneOverlay">
+  <div class="sheet" style="border-radius:18px;">
+    <h2>Clonar billes fijos</h2>
+    <div class="sub">Copia tus billes marcados como 🔁 fijos a los próximos meses</div>
+    <div class="add-form" style="margin-top:0; border-top:none; padding-top:0;">
+      <label for="cloneMonths">¿A cuántos meses adelante?</label>
+      <input type="number" id="cloneMonths" value="1" min="1" max="24" inputmode="numeric">
+    </div>
+    <div id="cloneSummary" class="footer-note" style="margin-top:12px; padding:0;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cloneCancelBtn">Cancelar</button>
+      <button class="btn btn-primary" id="cloneConfirmBtn">Clonar ahora</button>
     </div>
   </div>
 </div>
@@ -693,7 +748,7 @@ function renderBillList(){
     <div class="bill-row">
       <div class="check ${b.paid ? 'checked':''}" data-id="${b.id}">${b.paid ? '✓':''}</div>
       <div class="info">
-        <div class="name ${b.paid ? 'paid':''}">${escapeHtml(b.name)}</div>
+        <div class="name ${b.paid ? 'paid':''}">${escapeHtml(b.name)} ${b.recurring ? '<span class="recur-badge" title="Bille fijo">🔁</span>' : ''}</div>
         ${b.amount ? `<div class="amt">$${parseFloat(b.amount).toFixed(2)}</div>` : ''}
       </div>
       <button class="edit" data-id="${b.id}">✎</button>
@@ -729,6 +784,7 @@ function startEditBill(bill){
   editingId = bill.id;
   document.getElementById('billName').value = bill.name;
   document.getElementById('billAmt').value = bill.amount || '';
+  document.getElementById('billRecurring').checked = !!bill.recurring;
   document.getElementById('addBtn').textContent = 'Guardar cambios';
   document.getElementById('cancelEditLink').style.display = 'inline';
   document.getElementById('billName').focus();
@@ -739,6 +795,7 @@ function cancelEditBill(){
   editingId = null;
   document.getElementById('billName').value = '';
   document.getElementById('billAmt').value = '';
+  document.getElementById('billRecurring').checked = false;
   document.getElementById('addBtn').textContent = 'Agregar bille';
   document.getElementById('cancelEditLink').style.display = 'none';
 }
@@ -746,15 +803,18 @@ function cancelEditBill(){
 function addBill(){
   const nameInput = document.getElementById('billName');
   const amtInput = document.getElementById('billAmt');
+  const recurringInput = document.getElementById('billRecurring');
   const name = nameInput.value.trim();
   if(!name) { nameInput.focus(); return; }
   const amount = amtInput.value.trim();
+  const recurring = recurringInput.checked;
 
   if(editingId){
     const bill = (billsData[selectedKey]||[]).find(b => b.id === editingId);
     if(bill){
       bill.name = name;
       bill.amount = amount || '';
+      bill.recurring = recurring;
     }
     cancelEditBill();
   } else {
@@ -763,15 +823,59 @@ function addBill(){
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
       name,
       amount: amount || '',
-      paid: false
+      paid: false,
+      recurring
     });
     nameInput.value = '';
     amtInput.value = '';
+    recurringInput.checked = false;
     nameInput.focus();
   }
   saveData();
   renderBillList();
   render();
+}
+
+function daysInMonthOf(y, m){
+  return new Date(y, m + 1, 0).getDate();
+}
+
+function cloneFixedBills(monthsAhead){
+  let clonedCount = 0;
+  const sourceYear = viewYear, sourceMonth = viewMonth;
+  const daysInSource = daysInMonthOf(sourceYear, sourceMonth);
+
+  for(let d = 1; d <= daysInSource; d++){
+    const srcKey = dayKey(sourceYear, sourceMonth, d);
+    const srcBills = billsData[srcKey] || [];
+    const fixedBills = srcBills.filter(b => b.recurring);
+    if(fixedBills.length === 0) continue;
+
+    for(let i = 1; i <= monthsAhead; i++){
+      let targetMonth = sourceMonth + i;
+      let targetYear = sourceYear;
+      while(targetMonth > 11){ targetMonth -= 12; targetYear++; }
+      const targetDaysInMonth = daysInMonthOf(targetYear, targetMonth);
+      const targetDay = Math.min(d, targetDaysInMonth);
+      const targetKey = dayKey(targetYear, targetMonth, targetDay);
+
+      if(!billsData[targetKey]) billsData[targetKey] = [];
+      fixedBills.forEach(fb => {
+        const alreadyThere = billsData[targetKey].some(existing => existing.name.toLowerCase() === fb.name.toLowerCase() && existing.recurring);
+        if(!alreadyThere){
+          billsData[targetKey].push({
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+            name: fb.name,
+            amount: fb.amount,
+            paid: false,
+            recurring: true
+          });
+          clonedCount++;
+        }
+      });
+    }
+  }
+  return clonedCount;
 }
 
 document.getElementById('prevBtn').addEventListener('click', () => {
@@ -825,6 +929,37 @@ document.getElementById('userNameInput').addEventListener('keydown', (e) => {
 document.getElementById('switchUserLink').addEventListener('click', (e) => {
   e.preventDefault();
   showUserPrompt(currentUserDisplay);
+});
+
+document.getElementById('cloneLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  const fixedCount = Object.values(billsData).flat().filter(b => b.recurring).length;
+  document.getElementById('cloneSummary').textContent = fixedCount > 0
+    ? `Tienes ${fixedCount} bille(s) marcados como fijos en total.`
+    : `Aún no has marcado ningún bille como fijo. Edita uno y activa "🔁 Es un bille fijo".`;
+  document.getElementById('cloneMonths').value = 1;
+  document.getElementById('cloneOverlay').classList.add('open');
+});
+document.getElementById('cloneCancelBtn').addEventListener('click', () => {
+  document.getElementById('cloneOverlay').classList.remove('open');
+});
+document.getElementById('cloneOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'cloneOverlay') document.getElementById('cloneOverlay').classList.remove('open');
+});
+document.getElementById('cloneConfirmBtn').addEventListener('click', async () => {
+  const months = Math.max(1, Math.min(24, parseInt(document.getElementById('cloneMonths').value) || 1));
+  const btn = document.getElementById('cloneConfirmBtn');
+  btn.textContent = 'Clonando...';
+  btn.disabled = true;
+  const count = cloneFixedBills(months);
+  await saveData();
+  render();
+  btn.textContent = 'Clonar ahora';
+  btn.disabled = false;
+  document.getElementById('cloneOverlay').classList.remove('open');
+  document.getElementById('cloneSummary').textContent = count > 0
+    ? `Listo: se clonaron ${count} bille(s) a los próximos ${months} mes(es).`
+    : `No había billes fijos nuevos para clonar (puede que ya estuvieran copiados).`;
 });
 
 const savedName = localStorage.getItem(USERNAME_LS_KEY);
